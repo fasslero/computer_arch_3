@@ -15,7 +15,6 @@ class Node{
     int depth;
     InstInfo nodeInstructionInfo;
     int commandLatency;
-    int predecessorLatency;
     int commandNum;
 
 public:
@@ -46,7 +45,7 @@ Node::Node (InstInfo* nodeInstructionInfo, int commandNum){
     successors = EXIT; //todo - exit node
     // update latency for later functions
     commandLatency = program::opsLatency[nodeInstructionInfo->opcode];
-    predecessorLatency = max(parent1.getLatency(),parent2.getLatency());
+    depth = max(parent1.getLatency(),parent2.getLatency());
 }
 
 /*!
@@ -76,6 +75,7 @@ Node::~Node(){
  * Add the given node to the successor node vector.
  */
 void Node::updateSuccessor(Node &node) {
+    // todo - delete EXIT?
     successors.push_back(node); //todo - is push_back the right method?
 }
 
@@ -83,7 +83,7 @@ void Node::updateSuccessor(Node &node) {
  * returns the current node latency + the predecessor latency
  */
 int Node::getLatency() {
-    return commandLatency + predecessorLatency;
+    return commandLatency + depth;
 }
 
 /*!
