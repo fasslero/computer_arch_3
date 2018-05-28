@@ -5,6 +5,9 @@ typedef std::vector<Node&>::iterator NodeVecIterator;
 #define EXIT -2
 #define ENTRY -1
 
+
+/*hello world*/
+/*checking the  fucking git */
 /*************************************!
  * Node class
  *************************************/
