@@ -32,9 +32,9 @@ public:
 /*!
  * node regular constructor
  */
-Node::Node (InstInfo* nodeInstructionInfo, int commandNum){
-    nodeInstructionInfo = nodeInstructionInfo;
-    commandNum = commandNum;
+Node::Node (InstInfo* NodeInstructionInfo, int CommandNum){
+    nodeInstructionInfo = NodeInstructionInfo;
+    commandNum = CommandNum;
 
     //search for the predecessors
     parent1 = program::searchForPredecessor(nodeInstructionInfo->src1Idx);
@@ -44,7 +44,7 @@ Node::Node (InstInfo* nodeInstructionInfo, int commandNum){
     parent2.updateSuccessor(this);
     // TODO - need to solve the entry and exit nodes
     // the new node successor is always exit until changed
-    successors = EXIT; //todo - exit node
+    //successors = EXIT; //todo - exit node maybe we dont need an exit node
     // update latency for later functions
     commandLatency = program::opsLatency[nodeInstructionInfo->opcode];
     depth = max(parent1.getLatency(),parent2.getLatency());
@@ -58,9 +58,11 @@ Node::Node(int type){
     if (type == EXIT) {
         // create exit node
         // todo - I think we can use use the node object by reverse (successors vector will be the parent vector)
+		commandNum = EXIT;
     }
     else if (type == ENTRY){
-        //create entry node
+        //create entry node with command num 0
+		commandNum = 0;
 
     }
 
@@ -114,7 +116,7 @@ void Node::getParents(int* parent1Num, int* parent2Num) {
  * program class
  ****************************************/
 class program{
-    Node* registerToNode[MAX_OPS];   // todo - change the name to something "last command that touched the register"
+    Node* LastCommand[MAX_OPS];   // last command that modified the register
     NodeVec allNodesVector;
     InstInfo progTrace[];
     unsigned int numOfInsts;
@@ -132,8 +134,22 @@ public:
 /*!
  * program constructor, get all the inputs and analyse the program
  */
-program::program(const unsigned int opsLatency[],  InstInfo progTrace[], unsigned int numOfInsts){
+program::program(const unsigned int OpsLatency[],  InstInfo progTrace[], unsigned int numOfInsts){
 
+	Node EntryNode(ENTRY);
+
+	for (int i = 0; i < MAX_OPS; i++) {
+		LastCommand[i] = EntryNode.getNum();
+		opsLatency[i] = OpsLatency[i];
+	}
+	allNodesVector.push_back(EntryNode);
+	for (int i = 0; i < numOfInsts; i++) {
+		InstInfo currInst = progTrace[i];
+		Node currNode(progTrace[i], i + 1);		//Entry is command num 0 
+		allNodesVector.push_back(currNode);
+
+	}
+	
 }
 
 /*!
@@ -168,7 +184,7 @@ int program::getNodeParents(unsigned int commandNumber, int *parent1CommandNum, 
  */
 Node& program::searchForPredecessor(int srcIdx){
 //go to the reg table and see who is at regTable[srcIdx]
-    return registerToNode[srcIdx];
+    return LastCommand[srcIdx];
 }
 
 
