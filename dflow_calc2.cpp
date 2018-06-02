@@ -71,7 +71,7 @@ Node::Node(int type) : parent1(NULL), parent2(NULL), commandNum(0) {
 	}
 	else if (type == ENTRY) {
 		//create entry node with command num 0
-		commandNum = 0;
+		commandNum = -1;
 		commandLatency = 0;
 		depth = 0;
 
@@ -105,7 +105,7 @@ void Node::updateParent(int num, Node* pNode) {
 * returns the current node latency + the predecessor latency
 */
 int Node::getLatency() {
-	return commandLatency + depth;
+	return commandLatency;
 }
 
 /*updates command latency*/
@@ -119,7 +119,7 @@ void Node::updateLatency(int latency) {
 void Node::updateDepth(Node* parent) {
 	if (parent == NULL)
 		return;
-	int temp = parent->getLatency() + parent->getDepth();
+	int temp = parent->getDepth() + parent->getLatency();
 	if (temp > depth)
 		depth = temp;
 }
@@ -153,12 +153,12 @@ void Node::getParents(int* parent1Num, int* parent2Num) {
 ****************************************/
 class program {
 	Node* LastCommand[MAX_OPS];  // last command that modified the register
-	std::vector<Node*> allNodesVector;
 	unsigned int numOfInsts;
 	InstInfo* progTrace;
 	int maxDepth;
 
 public:
+	std::vector<Node*> allNodesVector;
 	program(const unsigned int OpsLatency[], InstInfo progTrace[], unsigned int numOfInsts);
 	unsigned int opsLatency[MAX_OPS];
 	//Node* searchForPredecessor(int srcIdx);
@@ -173,20 +173,20 @@ public:
 */
 program::program(const unsigned int OpsLatency[], InstInfo progTrace[], unsigned int numOfInsts) {
 
-	Node EntryNode(ENTRY);
+	Node* EntryNode = new Node(ENTRY);
 	//InstInfo* progTrace = new InstInfo[numOfInsts];
 	maxDepth = 0;
 
 	for (int i = 0; i < MAX_OPS; i++) {
-		LastCommand[i] = &EntryNode;
+		LastCommand[i] = EntryNode;
 		opsLatency[i] = OpsLatency[i];
 	}
-	allNodesVector.push_back(&EntryNode);
+	//allNodesVector.push_back(EntryNode);
 	for (int i = 0; i < numOfInsts; i++) {
 		InstInfo* currInst = progTrace + i;
-		Node* currNode = new Node(currInst, i + 1);
-		currNode->updateParent(1, LastCommand[currNode->getInst()->src1Idx]);  //updating the parents
-		currNode->updateParent(2, LastCommand[currNode->getInst()->src2Idx]);
+		Node* currNode = new Node(currInst, i);
+		currNode->updateParent(1, LastCommand[currInst->src1Idx]);  //updating the parents
+		currNode->updateParent(2, LastCommand[currInst->src2Idx]);
 		currNode->updateLatency(opsLatency[currNode->getInst()->opcode]);	//update latency
 		currNode->updateDepth(currNode->parent1);
 		currNode->updateDepth(currNode->parent2);
@@ -259,7 +259,8 @@ int getInstDepth(ProgCtx ctx, unsigned int theInst) {
 
 int getInstDeps(ProgCtx ctx, unsigned int theInst, int *src1DepInst, int *src2DepInst) {
 	program* prog = (program*)ctx;
-	prog->getNodeParents(theInst, src1DepInst, src2DepInst);
+	*src1DepInst = prog->allNodesVector[theInst]->parent1->getNum();
+	*src2DepInst = prog->allNodesVector[theInst]->parent2->getNum();
 	return 0;
 	// return -1 if fail, how can it fail?
 }
