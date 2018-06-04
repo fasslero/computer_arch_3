@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "dflow_calc.h"
-//typedef std::vector<Node*> NodeVec;
-//typedef std::vector<Node*>::iterator NodeVecIterator;
 #define EXIT -2
 #define ENTRY -1
 #define MAX_OPS 32
@@ -14,7 +12,6 @@ ProgCtx ctx;
 *************************************/
 class Node {
 
-    //NodeVec successors;
     int depth;
     InstInfo nodeInstructionInfo;
     int commandLatency;
@@ -29,7 +26,6 @@ public:
     int getDepth();
     int getLatency();
     int getNum();
-    //void updateSuccessor(Node& node);
     void updateParent(int, Node*);
     void updateLatency(int);
     void updateDepth(Node*);
@@ -45,7 +41,6 @@ Node::Node(InstInfo* NodeInstructionInfo, int CommandNum) {
     nodeInstructionInfo = *NodeInstructionInfo;
     commandNum = CommandNum;
 
-    //search for the predecessors
     parent1 = NULL;
     parent2 = NULL;
     commandLatency = 0;
@@ -55,15 +50,13 @@ Node::Node(InstInfo* NodeInstructionInfo, int CommandNum) {
 /*!
 * Node entry and exit constructor
 */
-Node::Node(int type) : parent1(NULL), parent2(NULL), commandNum(0) {
+Node::Node(int type) : parent1(NULL), parent2(NULL) {
 
     if (type == EXIT) {
-        // create exit node
-        //I think we dont need an exit node
         commandNum = EXIT;
     }
     else if (type == ENTRY) {
-        //create entry node with command num 0
+        //create entry node with command num -1
         commandNum = -1;
         commandLatency = 0;
         depth = 0;
@@ -144,15 +137,12 @@ void Node::getParents(int* parent1Num, int* parent2Num) {
 ****************************************/
 class program {
     Node* LastCommand[MAX_OPS];  // last command that modified the register
-    unsigned int numOfInsts;
-    InstInfo* progTrace;
     int maxDepth;
 
 public:
     std::vector<Node*> allNodesVector;
     program(const unsigned int OpsLatency[], InstInfo progTrace[], unsigned int numOfInsts);
     unsigned int opsLatency[MAX_OPS];
-    //Node* searchForPredecessor(int srcIdx);
     int getNodeDepth(unsigned int commandNumber);
     int getNodeParents(unsigned int commandNumber, int *, int *);
     int getMaxDepth();
@@ -165,14 +155,13 @@ public:
 program::program(const unsigned int OpsLatency[], InstInfo progTrace[], unsigned int numOfInsts) {
 
     Node* EntryNode = new Node(ENTRY);
-    //InstInfo* progTrace = new InstInfo[numOfInsts];
     maxDepth = 0;
 
     for (int i = 0; i < MAX_OPS; i++) {
         LastCommand[i] = EntryNode;
         opsLatency[i] = OpsLatency[i];
     }
-    for (int i = 0; i < numOfInsts; i++) {
+    for (unsigned int i = 0; i < numOfInsts; i++) {
         InstInfo* currInst = progTrace + i;
         Node* currNode = new Node(currInst, i);
         currNode->updateParent(1, LastCommand[currInst->src1Idx]);  //updating the parents
@@ -222,27 +211,16 @@ int program::getNodeParents(unsigned int commandNumber, int *parent1CommandNum, 
 }
 
 
-/*!
-* gets a register src idx and returns the latest command that write to that register
-*/
-Node* searchForPredecessor(int srcIdx, Node* LastCommand[]) {
-    //go to the reg table and see who is at lastcommand[srcIdx]
-    return LastCommand[srcIdx];
-}
-
-
 /***************************************!
 * Interface functions
 ***************************************/
 ProgCtx analyzeProg(const unsigned int opsLatency[], InstInfo progTrace[], unsigned int numOfInsts) {
     ctx = new program(opsLatency, progTrace, numOfInsts);
     return ctx;
-
-    // todo - need this? return PROG_CTX_NULL;
 }
 
 void freeProgCtx(ProgCtx ctx) {
-    delete ctx;
+    free(ctx);
 }
 
 int getInstDepth(ProgCtx ctx, unsigned int theInst) {
@@ -255,7 +233,6 @@ int getInstDeps(ProgCtx ctx, unsigned int theInst, int *src1DepInst, int *src2De
     *src1DepInst = prog->allNodesVector[theInst]->parent1->getNum();
     *src2DepInst = prog->allNodesVector[theInst]->parent2->getNum();
     return 0;
-    // return -1 if fail, how can it fail?
 }
 
 int getProgDepth(ProgCtx ctx) {
